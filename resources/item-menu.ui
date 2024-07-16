@@ -1,0 +1,14 @@
+<interface>
+  <menu id='app-menu'>
+    <section>
+      <item>
+        <attribute name='label'>Edit camera</attribute>
+        <attribute name='action'>app.edit-camera</attribute>
+      </item>
+      <item>
+        <attribute name='label'>Delete camera</attribute>
+        <attribute name='action'>app.delete-camera</attribute>
+      </item>
+    </section>
+  </menu>
+</interface>

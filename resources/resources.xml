@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/io/github/e_rk/ipcam">
+    <file compressed="true">item.ui</file>
+    <file compressed="true">item-menu.ui</file>
+    <file compressed="true">gui.xml</file>
+    <file compressed="true">add-action.ui</file>
+    <file compressed="true">add-camera.ui</file>
+    <file compressed="true">error-dialog.ui</file>
+    <file compressed="true">camera-ptz-config.ui</file>
+    <file compressed="true">app.css</file>
+  </gresource>
+</gresources>

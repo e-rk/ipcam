@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="ipcam">
+  <requires lib="gtk" version="4.0" />
+  <requires lib="adw" version="1.5" />
+  <template class="Ipcam-CameraOptions" parent="AdwPreferencesDialog">
+    <property name="presentation-mode">ADW_DIALOG_BOTTOM_SHEET</property>
+    <property name="title">Add camera</property>
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
+        <child>
+          <object class="AdwHeaderBar">
+            <property name="show-start-title-buttons">false</property>
+            <property name="show-end-title-buttons">false</property>
+            <child type="start">
+              <object class="GtkButton" id="cancelButton">
+                <property name="label">Cancel</property>
+                <property name="hexpand">True</property>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkButton" id="saveButton">
+                <property name="label">Save</property>
+                <property name="hexpand">True</property>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesPage">
+          <property name="title">Camera configuration</property>
+            <child>
+              <object class="AdwPreferencesGroup">
+                <property name="title">Camera configuration</property>
+                <property name="description">Required camera configuration options.</property>
+                <child>
+                  <object class="AdwEntryRow" id="cameraName">
+                    <property name="title">Camera name</property>
+                    <property name="input-purpose">GTK_INPUT_PURPOSE_FREE_FORM</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwEntryRow" id="cameraUri">
+                    <property name="title">Video URI</property>
+                    <property name="input-purpose">GTK_INPUT_PURPOSE_URL</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="Ipcam-CameraPtzConfig" id="cameraPtzConfig">
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

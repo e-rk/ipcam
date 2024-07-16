@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="ipcam">
+  <requires lib="gtk" version="4.0" />
+  <requires lib="adw" version="1.5" />
+  <object class="AdwApplicationWindow" id="mainWin">
+    <property name="title">IP camera viewer</property>
+    <property name="width-request">280</property>
+    <property name="height-request">200</property>
+    <property name="default-width">800</property>
+    <property name="default-height">800</property>
+    <child>
+      <object class="AdwBreakpoint">
+        <condition>max-width: 800sp</condition>
+        <setter object="split_view" property="collapsed">True</setter>
+      </object>
+    </child>
+    <property name="content">
+      <object class="AdwNavigationSplitView" id="split_view">
+        <property name="sidebar">
+          <object class="AdwNavigationPage">
+            <property name="title">Cameras</property>
+            <property name="child">
+              <object class="AdwToolbarView">
+                <child type="top">
+                  <object class="AdwHeaderBar">
+                    <child>
+                      <object class="GtkButton" id="cameraAddButton">
+                        <property name="icon-name">list-add</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <property name="content">
+                  <object class="GtkListView" id="cameraList">
+                    <style>
+                      <class name="navigation-sidebar"/>
+                    </style>
+                    <property name="model">
+                      <object class="GtkSingleSelection" id="cameraSelection">
+                        <property name="autoselect">False</property>
+                        <property name="model">
+                          <object class="GtkStringList" id="store">
+                          </object>
+                        </property>
+                      </object>
+                    </property>
+                    <property name="factory">
+                      <object class="GtkBuilderListItemFactory">
+                        <property name="resource">/io/github/e_rk/ipcam/item.ui</property>
+                      </object>
+                    </property>
+                  </object>
+                </property>
+              </object>
+            </property>
+          </object>
+        </property>
+        <property name="content">
+          <object class="AdwNavigationPage">
+            <property name="title">Live view</property>
+            <property name="child">
+              <object class="AdwToolbarView">
+                <child type="top">
+                  <object class="AdwHeaderBar">
+                    <child>
+                      <object class="GtkMenuButton">
+                        <property name="icon-name">open-menu-symbolic</property>
+                        <property name="popover">
+                          <object class="GtkPopoverMenu" id="cameraMenuPopover">
+                            <property name="visible">False</property>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <property name="content">
+                  <object class="GtkOverlay">
+                    <child>
+                      <object class="AdwBin">
+                        <property name="child">
+                          <object class="GtkPicture" id="videoPicture">
+                            <property name="visible">True</property>
+                            <property name="alternative-text">Alt text hahahah</property>
+                            <property name="vexpand">True</property>
+                            <property name="hexpand">True</property>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child type="overlay">
+                      <object class="GtkGrid">
+                        <property name="valign">GTK_ALIGN_END</property>
+                        <property name="halign">GTK_ALIGN_END</property>
+                        <property name="margin-bottom">50</property>
+                        <property name="margin-end">75</property>
+                        <property name="opacity">1.0</property>
+                        <child>
+                          <object class="GtkButton" id="ptzLeft">
+                            <property name="icon-name">go-previous</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <style>
+                              <class name="ptzButton"/>
+                            </style>
+                            <layout>
+                              <property name="column">-1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="ptzRight">
+                            <property name="icon-name">go-next</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <style>
+                              <class name="ptzButton"/>
+                            </style>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="ptzUp">
+                            <property name="icon-name">go-up</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <style>
+                              <class name="ptzButton"/>
+                            </style>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">-1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="ptzDown">
+                            <property name="icon-name">go-down</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <style>
+                              <class name="ptzButton"/>
+                            </style>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="ptzZoomIn">
+                            <property name="icon-name">zoom-in</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <style>
+                              <class name="ptzButton"/>
+                            </style>
+                            <style>
+                              <class name="color"/>
+                            </style>
+                            <layout>
+                              <property name="column">-1</property>
+                              <property name="row">-2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="ptzZoomOut">
+                            <property name="icon-name">zoom-out</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <style>
+                              <class name="ptzButton"/>
+                            </style>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">-2</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </property>
+          </object>
+        </property>
+      </object>
+    </property>
+  </object>
+</interface>

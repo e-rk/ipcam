@@ -1,0 +1,7 @@
+.ptzButton {
+  background-color: white;
+}
+
+.ptzButton:hover {
+  background-color: grey;
+}

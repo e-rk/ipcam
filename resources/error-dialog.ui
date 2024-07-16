@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="ipcam">
+  <requires lib="gtk" version="4.0" />
+  <requires lib="adw" version="1.5" />
+  <object class="AdwAlertDialog" id="errorDialog">
+    <property name="heading" translatable="yes">Error</property>
+    <property name="body" translatable="yes">Failed to parse application configuration. Do you want to create new empty configuration?</property>
+    <property name="default-response">exit</property>
+    <property name="close-response">exit</property>
+    <responses>
+      <response id="exit" translatable="yes">Exit</response>
+      <response id="discard" translatable="yes" appearance="destructive">Create new</response>
+    </responses>
+    <child>
+      <object class="GtkTextView" id="errorDetails">
+        <property name="monospace">True</property>
+        <property name="editable">False</property>
+      </object>
+    </child>
+  </object>
+</interface>

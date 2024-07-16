@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="ipcam">
+  <template class="Ipcam-CameraActionRow" parent="AdwExpanderRow">
+    <property name="title">Pan-tilt-zoom action</property>
+    <child>
+      <object class="AdwEntryRow" id="requestUri">
+        <property name="title">Action URI</property>
+        <property name="input-purpose">GTK_INPUT_PURPOSE_URL</property>
+      </object>
+    </child>
+    <child>
+      <object class="AdwEntryRow" id="requestStartData">
+        <property name="title">Action start data</property>
+      </object>
+    </child>
+    <child>
+      <object class="AdwEntryRow" id="requestStopData">
+        <property name="title">Action stop data</property>
+      </object>
+    </child>
+  </template>
+</interface>
