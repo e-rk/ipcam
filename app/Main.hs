@@ -31,7 +31,7 @@ data Runtime = Runtime
 
 type MRuntime = MVar Runtime
 
-type Interpreter = StateT Runtime IO
+type App = StateT Runtime IO
 
 cameraURI :: Camera -> Text
 cameraURI = uriToText . videoURI
@@ -57,30 +57,30 @@ storeConfig config = do
   cameraFilePath <- getConfigPath
   T.writeFile cameraFilePath (configEncode config)
 
-getRuntime :: Interpreter Runtime
+getRuntime :: App Runtime
 getRuntime = get
 
-getConfig :: Interpreter AppConfig
+getConfig :: App AppConfig
 getConfig = config <$> getRuntime
 
-addCameraSelectionI :: Camera -> Interpreter ()
+addCameraSelectionI :: Camera -> App ()
 addCameraSelectionI camera = do
   runtime <- getRuntime
   liftIO $ withGui runtime.gui $ guiAddCamera camera
 
-updateCameraSelection :: Interpreter ()
+updateCameraSelection :: App ()
 updateCameraSelection = do
   runtime <- getRuntime
   liftIO $ withGui runtime.gui guiUpdateCameraList
 
-saveConfig :: Interpreter ()
+saveConfig :: App ()
 saveConfig = do
   runtime <- getRuntime
   cameras <- getCameras
   let config = Config {appConfig = runtime.config, cameras = cameras}
   liftIO $ storeConfig config
 
-addCameraI :: Camera -> Interpreter Bool
+addCameraI :: Camera -> App Bool
 addCameraI camera = do
   runtime <- getRuntime
   existingCamera <- St.getCamera runtime.storage camera.name
@@ -92,7 +92,7 @@ addCameraI camera = do
       pure True
     False -> pure False
 
-selectCamera :: Text -> Interpreter ()
+selectCamera :: Text -> App ()
 selectCamera name = do
   runtime <- getRuntime
   camera <- St.getCamera runtime.storage name
@@ -105,30 +105,27 @@ selectCamera name = do
       pure ()
     Nothing -> pure ()
 
-getCameras :: Interpreter CameraMap
+getCameras :: App CameraMap
 getCameras = do
   runtime <- getRuntime
   St.getCameras runtime.storage
 
-initApp :: Interpreter ()
+initApp :: App ()
 initApp = do
   runtime <- getRuntime
   liftIO $ withGui runtime.gui guiUpdateCameraList
 
-runApp :: MRuntime -> Interpreter a -> IO a
+runApp :: MRuntime -> App a -> IO a
 runApp runtime = runner
   where
     runner action = modifyMVar runtime (\x -> swap <$> runStateT action x)
-
-initHandler :: MRuntime -> () -> IO ()
-initHandler runtime () = runApp runtime initApp
 
 selectCameraHandler :: MRuntime -> Text -> IO ()
 selectCameraHandler runtime name = do
   _ <- runApp runtime (selectCamera name)
   pure ()
 
-appRemoveCurrentCamera :: Interpreter ()
+appRemoveCurrentCamera :: App ()
 appRemoveCurrentCamera = do
   runtime <- getRuntime
   cameraName <- liftIO $ withGui runtime.gui guiGetSelectedCameraName
@@ -139,7 +136,7 @@ appRemoveCurrentCamera = do
       saveConfig
     Nothing -> pure ()
 
-appEditCurrentCamera :: Interpreter ()
+appEditCurrentCamera :: App ()
 appEditCurrentCamera = do
   runtime <- getRuntime
   selectedName <- liftIO $ withGui runtime.gui guiGetSelectedCameraName
@@ -150,7 +147,7 @@ appEditCurrentCamera = do
     Just cam -> liftIO $ withGui runtime.gui (guiOpenEditCameraDialog cam)
     Nothing -> pure ()
 
-getCurrentCamera :: Interpreter (Maybe Camera)
+getCurrentCamera :: App (Maybe Camera)
 getCurrentCamera = do
   runtime <- getRuntime
   cameraName <- liftIO $ withGui runtime.gui guiGetSelectedCameraName
@@ -158,7 +155,7 @@ getCurrentCamera = do
     Just name -> St.getCamera runtime.storage name
     Nothing -> pure Nothing
 
-appEditedCurrentCamera :: Camera -> Interpreter Bool
+appEditedCurrentCamera :: Camera -> App Bool
 appEditedCurrentCamera camera = do
   runtime <- getRuntime
   selectedName <- liftIO $ withGui runtime.gui guiGetSelectedCameraName
@@ -170,7 +167,7 @@ appEditedCurrentCamera camera = do
       pure result
     Nothing -> pure False
 
-appPtzAction :: PtzCommand -> Bool -> Maybe PtzData -> Interpreter ()
+appPtzAction :: PtzCommand -> Bool -> Maybe PtzData -> App ()
 appPtzAction ptzCommand start (Just (PtzData requestHeaders requestMethod ptzData)) = do
   let request = Map.lookup ptzCommand ptzData
   case request of
@@ -187,7 +184,7 @@ appPtzAction ptzCommand start (Just (PtzData requestHeaders requestMethod ptzDat
   pure ()
 appPtzAction _ _ (Nothing) = pure ()
 
-appPtzUp :: PtzCommand -> Bool -> Interpreter ()
+appPtzUp :: PtzCommand -> Bool -> App ()
 appPtzUp ptzCommand buttonState = do
   camera <- getCurrentCamera
   case camera of
