@@ -37,7 +37,7 @@
                     </style>
                     <property name="model">
                       <object class="GtkSingleSelection" id="cameraSelection">
-                        <property name="autoselect">False</property>
+                        <property name="autoselect">True</property>
                         <property name="model">
                           <object class="GtkStringList" id="store">
                           </object>
