@@ -77,11 +77,17 @@
                 <property name="content">
                   <object class="GtkOverlay">
                     <child>
-                      <object class="AdwBin">
-                        <property name="child">
+                      <object class="AdwToolbarView">
+                        <child type="top">
+                          <object class="AdwBanner" id="offlineStatus">
+                            <property name="title">Camera disconnected</property>
+                            <property name="button-label">Connect</property>
+                            <property name="revealed">True</property>
+                          </object>
+                        </child>
+                        <property name="content">
                           <object class="GtkPicture" id="videoPicture">
                             <property name="visible">True</property>
-                            <property name="alternative-text">Alt text hahahah</property>
                             <property name="vexpand">True</property>
                             <property name="hexpand">True</property>
                           </object>

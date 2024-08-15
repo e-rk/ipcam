@@ -13,6 +13,7 @@ module Gui
     guiSetHandlers,
     guiUpdateCameraList,
     guiOpenEditCameraDialog,
+    guiShowBanner,
   )
 where
 
@@ -48,7 +49,8 @@ data GuiHandlers = GuiHandlers
     activateHandler :: IO (),
     cameraSelectedHandler :: T.Text -> IO (),
     editCameraActionHandler :: IO (),
-    deleteCameraActionHandler :: IO ()
+    deleteCameraActionHandler :: IO (),
+    connectRequestHandler :: IO ()
   }
 
 data GuiInternal = GuiInternal
@@ -72,7 +74,8 @@ data GuiInternal = GuiInternal
     guiHandlers :: IORef (Maybe GuiHandlers),
     cameraHandler :: IORef (GuiHandlers -> (Camera -> IO Bool)),
     cameraStorage :: St.Storage,
-    cameraOptions :: CameraOptions
+    cameraOptions :: CameraOptions,
+    banner :: Adw.Banner
   }
 
 type Gui = GuiInternal
@@ -106,6 +109,7 @@ guiInit storage = do
   ptzZoomIn <- Gtk.builderGetObject builder "ptzZoomIn" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
   ptzZoomOut <- Gtk.builderGetObject builder "ptzZoomOut" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
   picture <- Gtk.builderGetObject builder "videoPicture" >>= Gptr.unsafeCastTo Gtk.Picture . fromJust
+  banner <- Gtk.builderGetObject builder "offlineStatus" >>= Gptr.unsafeCastTo Adw.Banner . fromJust
 
   errorDialogBuilder <- Gtk.builderNewFromResource "/io/github/e_rk/ipcam/error-dialog.ui"
   errorDialog <- Gtk.builderGetObject errorDialogBuilder "errorDialog" >>= Gptr.unsafeCastTo Adw.AlertDialog . fromJust
@@ -153,7 +157,8 @@ guiInit storage = do
           guiHandlers = guiHandlers,
           cameraHandler = cameraHandler,
           cameraStorage = storage,
-          cameraOptions = cameraOptions
+          cameraOptions = cameraOptions,
+          banner = banner
         }
   registerActions gui
   pure (gui, app)
@@ -251,6 +256,7 @@ registerActions gui = do
   _ <- Gtk.on gui.application #activate (withGui gui (withHandlers \h -> h.activateHandler))
   _ <- Gio.on gui.editCameraAction #activate (\_ -> withGui gui (withHandlers \h -> h.editCameraActionHandler))
   _ <- Gio.on gui.deleteCameraAction #activate (\_ -> withGui gui (withHandlers \h -> h.deleteCameraActionHandler))
+  _ <- Gio.on gui.banner #buttonClicked (withGui gui (withHandlers \h -> h.connectRequestHandler))
 
   let cameraOptionHandlers =
         CameraOptionsHandlers
@@ -312,3 +318,8 @@ cameraNameInputValidate name EditCamera = do
   result <- St.getCamera gui.cameraStorage name
   selected <- guiGetSelectedCameraName
   pure $ (isNothing result || any (== name) selected) && T.length name > 0
+
+guiShowBanner :: Bool -> GuiContext ()
+guiShowBanner reveal = do
+  gui <- ask
+  #setRevealed gui.banner reveal

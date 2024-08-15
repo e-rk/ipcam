@@ -2,6 +2,7 @@ module Main where
 
 import Config
 import Control.Concurrent
+import Control.Monad (forM_)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
 import Data.ByteString.Lazy qualified as LBS
@@ -92,17 +93,20 @@ addCameraI camera = do
       pure True
     False -> pure False
 
+startCameraStreaming :: Camera -> App ()
+startCameraStreaming camera = do
+  runtime <- getRuntime
+  liftIO $ Gptr.setObjectPropertyString runtime.playbin "uri" (Just $ cameraURI camera)
+  Gst.set runtime.playbin [#latency := 300]
+  _ <- Gst.elementSetState runtime.playbin Gst.StatePlaying
+  pure ()
+
 selectCamera :: Text -> App ()
 selectCamera name = do
   runtime <- getRuntime
   camera <- St.getCamera runtime.storage name
   case camera of
-    Just cam -> do
-      _ <- Gst.elementSetState runtime.playbin Gst.StateReady
-      liftIO $ Gptr.setObjectPropertyString runtime.playbin "uri" (Just $ cameraURI cam)
-      Gst.set runtime.playbin [#latency := 300]
-      _ <- Gst.elementSetState runtime.playbin Gst.StatePlaying
-      pure ()
+    Just cam -> startCameraStreaming cam
     Nothing -> pure ()
 
 getCameras :: App CameraMap
@@ -192,8 +196,45 @@ appPtzUp ptzCommand buttonState = do
       appPtzAction ptzCommand buttonState cam.ptzActions
     Nothing -> pure ()
 
-setupHandlers :: MRuntime -> Gui -> IO ()
-setupHandlers runtime gui = do
+streamHandler :: Gst.Message -> App ()
+streamHandler message = do
+  runtime <- getRuntime
+  mt <- Gst.get message #type
+  -- liftIO $ print mt
+  forM_ mt $ \messageType -> do
+    case messageType of
+      Gst.MessageTypeError -> do
+        _ <- #setState runtime.playbin Gst.StateNull
+        liftIO $ withGui runtime.gui (guiShowBanner True)
+        (errorValue, debugMessage) <- #parseError message
+        errorMessage <- liftIO $ Gst.gerrorMessage errorValue
+        liftIO $ print debugMessage
+        liftIO $ print errorMessage
+      Gst.MessageTypeEos -> do
+        _ <- #setState runtime.playbin Gst.StatePlaying
+        pure ()
+      Gst.MessageTypeStateChanged -> do
+        (oldState, newState, _) <- #parseStateChanged message
+        liftIO $ putStrLn ("State changed: " ++ show oldState ++ " -> " ++ show newState)
+        case newState of
+          Gst.StatePlaying -> liftIO $ withGui runtime.gui (guiShowBanner False)
+          Gst.StateReady -> #setState runtime.playbin Gst.StatePlaying >> pure ()
+          _ -> pure ()
+        pure ()
+      _ -> pure ()
+
+connectRequest :: App ()
+connectRequest = do
+  camera <- getCurrentCamera
+  case camera of
+    Just cam -> startCameraStreaming cam
+    Nothing -> pure ()
+
+setupHandlers :: MRuntime -> Gui -> Gst.Pipeline -> IO ()
+setupHandlers runtime gui pipeline = do
+  bus <- #getBus pipeline
+  #addSignalWatch bus
+  _ <- Gst.on bus #message (\m -> runApp runtime (streamHandler m))
   let handlers =
         GuiHandlers
           { addCameraHandler = (\camera -> runApp runtime (addCameraI camera)),
@@ -203,7 +244,8 @@ setupHandlers runtime gui = do
             activateHandler = runApp runtime initApp,
             cameraSelectedHandler = (\name -> runApp runtime (selectCamera name)),
             editCameraActionHandler = runApp runtime appEditCurrentCamera,
-            deleteCameraActionHandler = runApp runtime appRemoveCurrentCamera
+            deleteCameraActionHandler = runApp runtime appRemoveCurrentCamera,
+            connectRequestHandler = runApp runtime connectRequest
           }
   withGui gui $ guiSetHandlers handlers
 
@@ -217,7 +259,14 @@ main = do
   pipeline <- Gst.elementFactoryMake "playbin3" (Just "pipeline") >>= Gptr.unsafeCastTo Gst.Pipeline . fromJust
   gstCreateGtkWidget gui pipeline
 
-  newMVar Runtime {gui = gui, playbin = pipeline, config = cfg.appConfig, storage = storage} >>= (\x -> setupHandlers x gui)
+  newMVar
+    Runtime
+      { gui = gui,
+        playbin = pipeline,
+        config = cfg.appConfig,
+        storage = storage
+      }
+    >>= (\x -> setupHandlers x gui pipeline)
   -- case cfg of
   --   Right cfg' -> newMVar Runtime {gui = gui, playbin = pipeline, config = cfg'} >>= (\x -> setupHandlers x gui)
   --   Left _ -> error ""
