@@ -257,6 +257,8 @@ main = do
   args <- getArgs
   _ <- Gst.init (Just $ fmap pack args)
   pipeline <- Gst.elementFactoryMake "playbin3" (Just "pipeline") >>= Gptr.unsafeCastTo Gst.Pipeline . fromJust
+  liftIO $ Gptr.setObjectPropertyBool pipeline "instant-uri" True
+
   gstCreateGtkWidget gui pipeline
 
   newMVar
