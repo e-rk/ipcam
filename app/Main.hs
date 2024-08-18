@@ -210,22 +210,16 @@ streamHandler :: Gst.Message -> App ()
 streamHandler message = do
   runtime <- getRuntime
   mt <- Gst.get message #type
-  -- liftIO $ print mt
   forM_ mt $ \messageType -> do
     case messageType of
       Gst.MessageTypeError -> do
         _ <- #setState runtime.playbin Gst.StateNull
         liftIO $ withGui runtime.gui (guiShowBanner True)
-        (errorValue, debugMessage) <- #parseError message
-        errorMessage <- liftIO $ Gst.gerrorMessage errorValue
-        liftIO $ print debugMessage
-        liftIO $ print errorMessage
       Gst.MessageTypeEos -> do
         _ <- #setState runtime.playbin Gst.StatePlaying
         pure ()
       Gst.MessageTypeStateChanged -> do
-        (oldState, newState, _) <- #parseStateChanged message
-        liftIO $ putStrLn ("State changed: " ++ show oldState ++ " -> " ++ show newState)
+        (_, newState, _) <- #parseStateChanged message
         case newState of
           Gst.StatePlaying -> liftIO $ withGui runtime.gui (guiShowBanner False)
           Gst.StateReady -> #setState runtime.playbin Gst.StatePlaying >> pure ()

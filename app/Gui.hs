@@ -26,6 +26,7 @@ import Data.GI.Base (AttrOp ((:=)))
 import Data.GI.Base qualified as Gptr
 import Data.GI.Base.GObject qualified as Gobj
 import Data.GI.Base.Properties qualified as Gptr
+import Data.GI.Base.ShortPrelude (gvariantFromText)
 import Data.IORef
 import Data.Maybe
 import Data.Text qualified as T
@@ -75,7 +76,8 @@ data GuiInternal = GuiInternal
     cameraHandler :: IORef (GuiHandlers -> (Camera -> IO Bool)),
     cameraStorage :: St.Storage,
     cameraOptions :: CameraOptions,
-    banner :: Adw.Banner
+    banner :: Adw.Banner,
+    cameraNavigation :: Adw.NavigationSplitView
   }
 
 type Gui = GuiInternal
@@ -110,6 +112,7 @@ guiInit storage = do
   ptzZoomOut <- Gtk.builderGetObject builder "ptzZoomOut" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
   picture <- Gtk.builderGetObject builder "videoPicture" >>= Gptr.unsafeCastTo Gtk.Picture . fromJust
   banner <- Gtk.builderGetObject builder "offlineStatus" >>= Gptr.unsafeCastTo Adw.Banner . fromJust
+  cameraNavigation <- Gtk.builderGetObject builder "split_view" >>= Gptr.unsafeCastTo Adw.NavigationSplitView . fromJust
 
   errorDialogBuilder <- Gtk.builderNewFromResource "/io/github/e_rk/ipcam/error-dialog.ui"
   errorDialog <- Gtk.builderGetObject errorDialogBuilder "errorDialog" >>= Gptr.unsafeCastTo Adw.AlertDialog . fromJust
@@ -158,7 +161,8 @@ guiInit storage = do
           cameraHandler = cameraHandler,
           cameraStorage = storage,
           cameraOptions = cameraOptions,
-          banner = banner
+          banner = banner,
+          cameraNavigation = cameraNavigation
         }
   registerActions gui
   pure (gui, app)
@@ -193,10 +197,14 @@ guiUpdateCameraList = do
 
 cameraSelectionWrapper :: Word32 -> Word32 -> GuiContext ()
 cameraSelectionWrapper _ _ = do
+  gui <- ask
   selection <- guiGetSelectedCameraName
   case selection of
     Just s -> do
       withHandlers (\h -> h.cameraSelectedHandler s)
+      actionValue <- liftIO $ gvariantFromText "liveView"
+      result <- #activateAction gui.cameraNavigation "navigation.push" (Just actionValue)
+      pure ()
     Nothing -> pure ()
 
 guiGstCreateVideoSink :: GuiContext (Maybe Gst.Element)
@@ -224,8 +232,8 @@ guiMessageDialog text = do
 
 guiGetSelectedCameraName :: GuiContext (Maybe T.Text)
 guiGetSelectedCameraName = do
-  store <- fmap cameraListSelection ask
-  item <- #getSelectedItem store
+  gui <- ask
+  item <- #getSelectedItem gui.cameraListSelection
   string <- mapM (liftIO . Gptr.unsafeCastTo Gtk.StringObject) item
   case string of
     Just string' -> Just <$> Gtk.get string' #string
