@@ -26,6 +26,7 @@ import Data.GI.Base (AttrOp ((:=)))
 import Data.GI.Base qualified as Gptr
 import Data.GI.Base.GObject qualified as Gobj
 import Data.GI.Base.Properties qualified as Gptr
+import Data.GI.Base.ShortPrelude (gvariantFromText)
 import Data.IORef
 import Data.Maybe
 import Data.Text qualified as T
@@ -58,8 +59,8 @@ data GuiInternal = GuiInternal
     applicationWindow :: Adw.ApplicationWindow,
     cameraAddButton :: Gtk.Button,
     cameraMenuPopover :: Gtk.PopoverMenu,
-    cameraListStore :: Gtk.StringList,
-    cameraListSelection :: Gtk.SingleSelection,
+    cameraList :: Gtk.ListBox,
+    cameraListModel :: Gtk.StringList,
     ptzUpButton :: Gtk.Button,
     ptzRightButton :: Gtk.Button,
     ptzDownButton :: Gtk.Button,
@@ -75,7 +76,8 @@ data GuiInternal = GuiInternal
     cameraHandler :: IORef (GuiHandlers -> (Camera -> IO Bool)),
     cameraStorage :: St.Storage,
     cameraOptions :: CameraOptions,
-    banner :: Adw.Banner
+    banner :: Adw.Banner,
+    cameraNavigation :: Adw.NavigationSplitView
   }
 
 type Gui = GuiInternal
@@ -100,8 +102,7 @@ guiInit storage = do
   applicationWindow <- initWindow app builder
   cameraAddButton <- Gtk.builderGetObject builder "cameraAddButton" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
   cameraMenuPopover <- Gtk.builderGetObject builder "cameraMenuPopover" >>= Gptr.unsafeCastTo Gtk.PopoverMenu . fromJust
-  cameraListStore <- Gtk.builderGetObject builder "store" >>= Gptr.unsafeCastTo Gtk.StringList . fromJust
-  cameraListSelection <- Gtk.builderGetObject builder "cameraSelection" >>= Gptr.unsafeCastTo Gtk.SingleSelection . fromJust
+  cameraList <- Gtk.builderGetObject builder "cameraList" >>= Gptr.unsafeCastTo Gtk.ListBox . fromJust
   ptzUp <- Gtk.builderGetObject builder "ptzUp" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
   ptzRight <- Gtk.builderGetObject builder "ptzRight" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
   ptzDown <- Gtk.builderGetObject builder "ptzDown" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
@@ -110,6 +111,7 @@ guiInit storage = do
   ptzZoomOut <- Gtk.builderGetObject builder "ptzZoomOut" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
   picture <- Gtk.builderGetObject builder "videoPicture" >>= Gptr.unsafeCastTo Gtk.Picture . fromJust
   banner <- Gtk.builderGetObject builder "offlineStatus" >>= Gptr.unsafeCastTo Adw.Banner . fromJust
+  cameraNavigation <- Gtk.builderGetObject builder "split_view" >>= Gptr.unsafeCastTo Adw.NavigationSplitView . fromJust
 
   errorDialogBuilder <- Gtk.builderNewFromResource "/io/github/e_rk/ipcam/error-dialog.ui"
   errorDialog <- Gtk.builderGetObject errorDialogBuilder "errorDialog" >>= Gptr.unsafeCastTo Adw.AlertDialog . fromJust
@@ -133,6 +135,11 @@ guiInit storage = do
   Gtk.cssProviderLoadFromResource cssProvider "/io/github/e_rk/ipcam/app.css"
   Gtk.styleContextAddProviderForDisplay display cssProvider (fromIntegral Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
+  cameraListModel <- Gtk.new Gtk.StringList []
+  cameraSelectionModel <- Gtk.new Gtk.SingleSelection [#autoselect := True]
+  #setModel cameraSelectionModel (Just cameraListModel)
+  Gtk.listBoxBindModel cameraList (Just cameraSelectionModel) (Just makeRow)
+
   cameraOptions <- Gtk.new CameraOptions []
   gui <-
     pure $
@@ -141,8 +148,8 @@ guiInit storage = do
           applicationWindow = applicationWindow,
           cameraAddButton = cameraAddButton,
           cameraMenuPopover = cameraMenuPopover,
-          cameraListStore = cameraListStore,
-          cameraListSelection = cameraListSelection,
+          cameraList = cameraList,
+          cameraListModel = cameraListModel,
           ptzUpButton = ptzUp,
           ptzRightButton = ptzRight,
           ptzDownButton = ptzDown,
@@ -158,10 +165,19 @@ guiInit storage = do
           cameraHandler = cameraHandler,
           cameraStorage = storage,
           cameraOptions = cameraOptions,
-          banner = banner
+          banner = banner,
+          cameraNavigation = cameraNavigation
         }
   registerActions gui
   pure (gui, app)
+
+makeRow :: Gobj.Object -> IO Gtk.Widget
+makeRow object = do
+  stringObject <- Gptr.unsafeCastTo Gtk.StringObject object
+  string <- Gtk.get stringObject #string
+  label <- Gtk.new Gtk.Label [#label := string]
+  row <- Gtk.new Gtk.ListBoxRow [#child := label]
+  Gtk.toWidget row
 
 guiSetHandlers :: GuiHandlers -> GuiContext ()
 guiSetHandlers guiHandlers = do
@@ -175,29 +191,33 @@ initWindow app builder = do
   Gtk.windowPresent mainWin
   pure mainWin
 
-withGui :: Gui -> GuiContext a -> IO a
-withGui = flip runReaderT
+withGui :: (MonadIO m) => Gui -> GuiContext a -> m a
+withGui guiHandle action = liftIO $ runReaderT action guiHandle
 
-guiAddCamera :: Camera -> GuiContext ()
-guiAddCamera camera = do
-  store <- cameraListStore <$> ask
-  #append store camera.name
-  pure ()
+guiAddCamera :: (MonadIO m) => Gui -> Camera -> m ()
+guiAddCamera guiHandle camera = do
+  withGui guiHandle $ do
+    store <- cameraListModel <$> ask
+    #append store camera.name
+    pure ()
 
-guiUpdateCameraList :: GuiContext ()
-guiUpdateCameraList = do
+guiUpdateCameraList :: (MonadIO m) => Gui -> m ()
+guiUpdateCameraList guiHandle = do
+  withGui guiHandle $ do
+    gui <- ask
+    cameras <- St.getCamerasList gui.cameraStorage
+    num <- Gio.listModelGetNItems gui.cameraListModel
+    #splice gui.cameraListModel 0 num (Just $ fmap name cameras)
+
+cameraSelectionWrapper :: Gtk.ListBoxRow -> GuiContext ()
+cameraSelectionWrapper row = do
   gui <- ask
-  cameras <- St.getCamerasList gui.cameraStorage
-  num <- Gio.listModelGetNItems gui.cameraListStore
-  #splice gui.cameraListStore 0 num (Just $ fmap name cameras)
-
-cameraSelectionWrapper :: Word32 -> Word32 -> GuiContext ()
-cameraSelectionWrapper _ _ = do
-  selection <- guiGetSelectedCameraName
-  case selection of
-    Just s -> do
-      withHandlers (\h -> h.cameraSelectedHandler s)
-    Nothing -> pure ()
+  label <- Gtk.get row #child >>= (\x -> liftIO $ Gptr.unsafeCastTo Gtk.Label $ fromJust x)
+  selection <- Gtk.get label #label
+  withHandlers (\h -> h.cameraSelectedHandler selection)
+  actionValue <- liftIO $ gvariantFromText "liveView"
+  _ <- #activateAction gui.cameraNavigation "navigation.push" (Just actionValue)
+  pure ()
 
 guiGstCreateVideoSink :: GuiContext (Maybe Gst.Element)
 guiGstCreateVideoSink = do
@@ -224,11 +244,12 @@ guiMessageDialog text = do
 
 guiGetSelectedCameraName :: GuiContext (Maybe T.Text)
 guiGetSelectedCameraName = do
-  store <- fmap cameraListSelection ask
-  item <- #getSelectedItem store
-  string <- mapM (liftIO . Gptr.unsafeCastTo Gtk.StringObject) item
-  case string of
-    Just string' -> Just <$> Gtk.get string' #string
+  gui <- ask
+  item <- #getSelectedRow gui.cameraList
+  case item of
+    Just i -> do
+      label <- Gtk.get i #child >>= (\x -> liftIO $ Gptr.unsafeCastTo Gtk.Label $ fromJust x)
+      Just <$> Gtk.get label #label
     Nothing -> pure Nothing
 
 guiProcessEvents :: Gtk.Application -> IO ()
@@ -252,7 +273,7 @@ guiOpenEditCameraDialog camera = do
 registerActions :: Gui -> IO ()
 registerActions gui = do
   _ <- Gtk.on gui.cameraAddButton #clicked (withGui gui openAddCameraDialog)
-  _ <- Gtk.on gui.cameraListSelection #selectionChanged (\w1 w2 -> withGui gui (cameraSelectionWrapper w1 w2))
+  _ <- Gtk.on gui.cameraList #rowActivated (\row -> withGui gui (cameraSelectionWrapper row))
   _ <- Gtk.on gui.application #activate (withGui gui (withHandlers \h -> h.activateHandler))
   _ <- Gio.on gui.editCameraAction #activate (\_ -> withGui gui (withHandlers \h -> h.editCameraActionHandler))
   _ <- Gio.on gui.deleteCameraAction #activate (\_ -> withGui gui (withHandlers \h -> h.deleteCameraActionHandler))
