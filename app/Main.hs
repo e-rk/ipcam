@@ -77,12 +77,12 @@ getConfig = config <$> getRuntime
 addCameraSelectionI :: Camera -> App ()
 addCameraSelectionI camera = do
   runtime <- getRuntime
-  liftIO $ withGui runtime.gui $ guiAddCamera camera
+  guiAddCamera runtime.gui camera
 
 updateCameraSelection :: App ()
 updateCameraSelection = do
   runtime <- getRuntime
-  liftIO $ withGui runtime.gui guiUpdateCameraList
+  guiUpdateCameraList runtime.gui
 
 saveConfig :: App ()
 saveConfig = do
@@ -127,7 +127,7 @@ getCameras = do
 initApp :: App ()
 initApp = do
   runtime <- getRuntime
-  liftIO $ withGui runtime.gui guiUpdateCameraList
+  guiUpdateCameraList runtime.gui
 
 runApp :: MRuntime -> App a -> IO a
 runApp runtime = runner
@@ -153,18 +153,18 @@ appRemoveCurrentCamera = do
 appEditCurrentCamera :: App ()
 appEditCurrentCamera = do
   runtime <- getRuntime
-  selectedName <- liftIO $ withGui runtime.gui guiGetSelectedCameraName
+  selectedName <- withGui runtime.gui guiGetSelectedCameraName
   camera <- case selectedName of
     Just name -> St.getCamera runtime.storage name
     Nothing -> pure Nothing
   case camera of
-    Just cam -> liftIO $ withGui runtime.gui (guiOpenEditCameraDialog cam)
+    Just cam -> withGui runtime.gui (guiOpenEditCameraDialog cam)
     Nothing -> pure ()
 
 getCurrentCamera :: App (Maybe Camera)
 getCurrentCamera = do
   runtime <- getRuntime
-  cameraName <- liftIO $ withGui runtime.gui guiGetSelectedCameraName
+  cameraName <- withGui runtime.gui guiGetSelectedCameraName
   case cameraName of
     Just name -> St.getCamera runtime.storage name
     Nothing -> pure Nothing
@@ -172,7 +172,7 @@ getCurrentCamera = do
 appEditedCurrentCamera :: Camera -> App Bool
 appEditedCurrentCamera camera = do
   runtime <- getRuntime
-  selectedName <- liftIO $ withGui runtime.gui guiGetSelectedCameraName
+  selectedName <- withGui runtime.gui guiGetSelectedCameraName
   case selectedName of
     Just name -> do
       result <- St.overwriteCamera runtime.storage name camera
@@ -210,22 +210,16 @@ streamHandler :: Gst.Message -> App ()
 streamHandler message = do
   runtime <- getRuntime
   mt <- Gst.get message #type
-  -- liftIO $ print mt
   forM_ mt $ \messageType -> do
     case messageType of
       Gst.MessageTypeError -> do
         _ <- #setState runtime.playbin Gst.StateNull
-        liftIO $ withGui runtime.gui (guiShowBanner True)
-        (errorValue, debugMessage) <- #parseError message
-        errorMessage <- liftIO $ Gst.gerrorMessage errorValue
-        liftIO $ print debugMessage
-        liftIO $ print errorMessage
+        withGui runtime.gui (guiShowBanner True)
       Gst.MessageTypeEos -> do
         _ <- #setState runtime.playbin Gst.StatePlaying
         pure ()
       Gst.MessageTypeStateChanged -> do
-        (oldState, newState, _) <- #parseStateChanged message
-        liftIO $ putStrLn ("State changed: " ++ show oldState ++ " -> " ++ show newState)
+        (_, newState, _) <- #parseStateChanged message
         case newState of
           Gst.StatePlaying -> liftIO $ withGui runtime.gui (guiShowBanner False)
           Gst.StateReady -> #setState runtime.playbin Gst.StatePlaying >> pure ()

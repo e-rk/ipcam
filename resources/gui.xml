@@ -16,6 +16,7 @@
     </child>
     <property name="content">
       <object class="AdwNavigationSplitView" id="split_view">
+        <property name="show-content">True</property>
         <property name="sidebar">
           <object class="AdwNavigationPage">
             <property name="title">Cameras</property>
@@ -31,24 +32,10 @@
                   </object>
                 </child>
                 <property name="content">
-                  <object class="GtkListView" id="cameraList">
+                  <object class="GtkListBox" id="cameraList">
                     <style>
                       <class name="navigation-sidebar"/>
                     </style>
-                    <property name="model">
-                      <object class="GtkSingleSelection" id="cameraSelection">
-                        <property name="autoselect">True</property>
-                        <property name="model">
-                          <object class="GtkStringList" id="store">
-                          </object>
-                        </property>
-                      </object>
-                    </property>
-                    <property name="factory">
-                      <object class="GtkBuilderListItemFactory">
-                        <property name="resource">/io/github/e_rk/ipcam/item.ui</property>
-                      </object>
-                    </property>
                   </object>
                 </property>
               </object>
@@ -57,6 +44,7 @@
         </property>
         <property name="content">
           <object class="AdwNavigationPage">
+            <property name="tag">liveView</property>
             <property name="title">Live view</property>
             <property name="child">
               <object class="AdwToolbarView">
