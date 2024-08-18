@@ -103,7 +103,8 @@ executable ipcam
         http-conduit,
         http-client,
         case-insensitive,
-        bytestring
+        bytestring,
+        safe-exceptions
 
     -- Directories containing source files.
     hs-source-dirs:   app

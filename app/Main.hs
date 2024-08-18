@@ -2,6 +2,8 @@ module Main where
 
 import Config
 import Control.Concurrent
+import Control.Exception (catch)
+import Control.Exception.Safe (tryAny)
 import Control.Monad (forM_)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
@@ -15,6 +17,7 @@ import Data.Text hiding (find, foldl', foldr, null)
 import Data.Text.Encoding
 import Data.Text.IO.Utf8 qualified as T
 import Data.Tuple
+import GHC.IO.Exception (IOException)
 import GI.Gst qualified as Gst
 import Gui
 import Network.HTTP.Simple
@@ -49,9 +52,16 @@ getConfigPath = Xdg.getUserConfigFile "ipcam" "camera.toml"
 
 loadConfig :: IO (Either Text Config)
 loadConfig = do
-  cameraFilePath <- getConfigPath
-  config <- T.readFile cameraFilePath
-  pure $ configDecode config
+  catch
+    ( do
+        cameraFilePath <- getConfigPath
+        config <- T.readFile cameraFilePath
+        pure $ configDecode config
+    )
+    ( \e -> do
+        let err = show (e :: IOException)
+        pure $ Left $ pack err
+    )
 
 storeConfig :: Config -> IO ()
 storeConfig config = do
@@ -182,7 +192,7 @@ appPtzAction ptzCommand start (Just (PtzData requestHeaders requestMethod ptzDat
             setRequestMethod (encodeUtf8 requestMethod) $
               setRequestBodyLBS (LBS.fromStrict $ encodeUtf8 requestBody) reqInit
       let req2 = foldr (\a b -> addRequestHeader (fst a) (snd a) b) req requestHeaders
-      _ <- httpLBS req2
+      _ <- liftIO $ tryAny (httpNoBody req2 >> pure ())
       pure ()
     Nothing -> pure ()
   pure ()
@@ -249,9 +259,18 @@ setupHandlers runtime gui pipeline = do
           }
   withGui gui $ guiSetHandlers handlers
 
+initDefaultConfig :: IO Config
+initDefaultConfig = do
+  let config = Config {appConfig = AppConfig {autostart = False}, cameras = mempty}
+  storeConfig config
+  pure config
+
 main :: IO ()
 main = do
-  Right cfg <- loadConfig
+  cfg <-
+    loadConfig >>= \x -> case x of
+      Right c -> pure c
+      Left _ -> initDefaultConfig
   storage <- St.newStorage cfg.cameras
   (gui, app) <- guiInit storage
   args <- getArgs
@@ -269,7 +288,4 @@ main = do
         storage = storage
       }
     >>= (\x -> setupHandlers x gui pipeline)
-  -- case cfg of
-  --   Right cfg' -> newMVar Runtime {gui = gui, playbin = pipeline, config = cfg'} >>= (\x -> setupHandlers x gui)
-  --   Left _ -> error ""
   guiProcessEvents app
