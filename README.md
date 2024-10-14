@@ -11,6 +11,11 @@ To be added...
 
 Adding a new camera requires manually configuring the RTSP URI and pan, tilt and zoom action requests.
 
+> [!NOTE]
+> The URI paths will be different for different camera models, but leaving it empty is a good first guess.
+> If empty URI path doesn't work, you will have to do a bit of research of your particular model.
+> Inspecting the Javascript of the web interface with the web browser developer tools can be used for that purpose.
+
 The software does not support the ONVIF standard at the present time.
 
 ## Adding a new camera
@@ -23,11 +28,7 @@ After opening the application, the first thing to do is to add a new camera.
    A camera configuration window will appear.
 2. Enter a unique name for the camera
 3. Enter an URI to the RTSP stream.
-   The URI must be in format: `rtsp://[username:password@]{host}/{path}`
-   > [!NOTE]
-   > The URI path will be different for different camera models, but leaving it empty is a good first guess.
-   > If empty URI path doesn't work, you will have to do a bit of research of your particular model.
-   > Inspecting the Javascript of the web interface with the web browser developer tools can be used for that purpose.
+   The URI must be in format: `rtsp:// [username:password@] host [:port] / path`, for example `rtsp://admin:pass123@192.168.1.1/0/stream`.
 4. Click the save button.
 
 The new camera will appear in the list on the left.
