@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.e_rk.ipcam</id>
+
+  <name>IP Camera</name>
+  <summary>View live video from IP cameras</summary>
+
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <description>
+    <p>
+      IP Camera allows for connecting to any IP camera which streams video over the RTSP protocol. Additionally, the software allows for adding custom actions for performing pan, tilt and zoom.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.e_rk.ipcam.desktop</launchable>
+</component>
