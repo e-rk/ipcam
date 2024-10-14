@@ -1,0 +1,21 @@
+{
+    "base": {
+        "app-id": "io.github.e_rk.ipcam",
+        "runtime": "org.gnome.Platform",
+        "runtime-version": "47",
+        "sdk": "org.gnome.Sdk",
+        "command": "ipcam",
+        "finish-args": [
+            "--share=network",
+            "--filesystem=xdg-config/ipcam:create",
+            "--socket=wayland",
+            "--socket=fallback-x11",
+            "--device=dri",
+            "--env=LIBVA_DRIVER_NAME=dummy"
+        ],
+        "cleanup": [],
+        "cleanup-commands": [],
+        "modules": []
+    },
+    "main-package": "ipcam"
+}

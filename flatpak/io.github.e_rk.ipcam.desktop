@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=IP Camera
+Exec=ipcam
+Type=Application
+Icon=io.github.e_rk.ipcam
+Categories=Network;
