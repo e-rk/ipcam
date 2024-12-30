@@ -45,9 +45,7 @@ cameraURI = uriToText . videoURI
 gstCreateGtkWidget :: Gui -> Gst.Pipeline -> IO ()
 gstCreateGtkWidget gui pipeline = do
   gtkglsink <- withGui gui guiGstCreateVideoSink
-  Just glsinkbin <- Gst.elementFactoryMake "glsinkbin" (Just "glsinkbin")
-  Gptr.setObjectPropertyObject pipeline "video-sink" (Just glsinkbin)
-  Gptr.setObjectPropertyObject glsinkbin "sink" gtkglsink
+  Gptr.setObjectPropertyObject pipeline "video-sink" gtkglsink
 
 getConfigPath :: IO String
 getConfigPath = Xdg.getUserConfigFile "ipcam" "camera.toml"
