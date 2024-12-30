@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<interface domain="ipcam">
+<interface domain="io.github.e_rk.ipcam">
   <requires lib="gtk" version="4.0" />
   <requires lib="adw" version="1.5" />
   <object class="AdwApplicationWindow" id="mainWin">
-    <property name="title">IP camera viewer</property>
+    <property name="title" translatable="yes">IP camera viewer</property>
     <property name="width-request">280</property>
     <property name="height-request">200</property>
     <property name="default-width">800</property>
     <property name="default-height">800</property>
+    <property name="fullscreened">True</property>
     <child>
       <object class="AdwBreakpoint">
         <condition>max-width: 800sp</condition>
@@ -19,7 +20,7 @@
         <property name="show-content">True</property>
         <property name="sidebar">
           <object class="AdwNavigationPage">
-            <property name="title">Cameras</property>
+            <property name="title" translatable="yes">Cameras</property>
             <property name="child">
               <object class="AdwToolbarView">
                 <child type="top">
@@ -59,7 +60,7 @@
         <property name="content">
           <object class="AdwNavigationPage">
             <property name="tag">liveView</property>
-            <property name="title">Live view</property>
+            <property name="title" translatable="yes">Video stream</property>
             <property name="child">
               <object class="AdwToolbarView">
                 <child type="top">
@@ -82,8 +83,8 @@
                       <object class="AdwToolbarView">
                         <child type="top">
                           <object class="AdwBanner" id="offlineStatus">
-                            <property name="title">Camera disconnected</property>
-                            <property name="button-label">Connect</property>
+                            <property name="title" translatable="yes">Camera disconnected</property>
+                            <property name="button-label" translatable="yes">Connect</property>
                             <property name="revealed">True</property>
                           </object>
                         </child>

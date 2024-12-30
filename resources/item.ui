@@ -1,4 +1,4 @@
-<interface>
+<interface domain="io.github.e_rk.ipcam">
   <template class="GtkListItem">
     <property name="child">
       <object class="GtkLabel">

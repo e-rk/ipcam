@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<interface domain="ipcam">
+<interface domain="io.github.e_rk.ipcam">
   <template class="Ipcam-CameraPtzConfig" parent="AdwPreferencesPage">
-    <property name="title">Pan-tilt-zoom</property>
+    <property name="title" translatable="yes">Pan-tilt-zoom</property>
     <child>
       <object class="AdwPreferencesGroup" id="headerGroup">
-        <property name="title">HTTP configuration</property>
+        <property name="title" translatable="yes">HTTP configuration</property>
         <child type="header-suffix">
           <object class="GtkButton" id="headerAddButton">
             <property name="icon-name">list-add</property>
@@ -15,7 +15,7 @@
         </child>
         <child>
           <object class="AdwComboRow" id="requestMethod">
-            <property name="title">Request method</property>
+            <property name="title" translatable="yes">Request method</property>
             <property name="model">
               <object class="GtkStringList">
                 <items>
@@ -31,35 +31,35 @@
     </child>
     <child>
       <object class="AdwPreferencesGroup" id="cameraPtzConfiguration">
-        <property name="title">Pan-tilt-zoom configuration</property>
+        <property name="title" translatable="yes">Pan-tilt-zoom configuration</property>
         <child>
           <object class="Ipcam-CameraActionRow" id="ptzLeft">
-            <property name="title">Move left</property>
+            <property name="title" translatable="yes">Move left</property>
           </object>
         </child>
         <child>
           <object class="Ipcam-CameraActionRow" id="ptzUp">
-            <property name="title">Move up</property>
+            <property name="title" translatable="yes">Move up</property>
           </object>
         </child>
         <child>
           <object class="Ipcam-CameraActionRow" id="ptzRight">
-            <property name="title">Move right</property>
+            <property name="title" translatable="yes">Move right</property>
           </object>
         </child>
         <child>
           <object class="Ipcam-CameraActionRow" id="ptzDown">
-            <property name="title">Move Down</property>
+            <property name="title" translatable="yes">Move Down</property>
           </object>
         </child>
         <child>
           <object class="Ipcam-CameraActionRow" id="ptzZoomIn">
-            <property name="title">Zoom in</property>
+            <property name="title" translatable="yes">Zoom in</property>
           </object>
         </child>
         <child>
           <object class="Ipcam-CameraActionRow" id="ptzZoomOut">
-            <property name="title">Zoom out</property>
+            <property name="title" translatable="yes">Zoom out</property>
           </object>
         </child>
       </object>

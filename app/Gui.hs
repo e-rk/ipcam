@@ -98,7 +98,7 @@ guiInit storage = do
   Gio.resourcesRegister gresource
   Gio.applicationRegister app (Nothing :: Maybe Gio.Cancellable)
   Gtk.setApplicationRegisterSession app True
-  builder <- Gtk.builderNewFromResource "/io/github/e_rk/ipcam/gui.xml"
+  builder <- Gtk.builderNewFromResource "/io/github/e_rk/ipcam/gui.ui"
   applicationWindow <- initWindow app builder
   cameraAddButton <- Gtk.builderGetObject builder "cameraAddButton" >>= Gptr.unsafeCastTo Gtk.Button . fromJust
   cameraMenuPopover <- Gtk.builderGetObject builder "cameraMenuPopover" >>= Gptr.unsafeCastTo Gtk.PopoverMenu . fromJust
