@@ -43,15 +43,24 @@ maintainer:         rafal.kuznia@protonmail.com
 -- A copyright notice.
 -- copyright:
 category:           Web
-build-type:         Simple
+build-type:         Custom
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
 extra-doc-files:    CHANGELOG.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
--- extra-source-files:
+extra-source-files: po/*.po
 
 data-files: resources/resources.gresource
+
+x-gettext-po-files:     po/*.po
+x-gettext-domain-name:  io.github.e_rk.ipcam
+
+custom-setup
+  setup-depends:
+    hgettext,
+    base >= 4 && <5,
+    Cabal >= 1.24 && < 4
 
 common warnings
     ghc-options: -Wall -threaded
@@ -104,7 +113,9 @@ executable ipcam
         http-client,
         case-insensitive,
         bytestring,
-        safe-exceptions
+        safe-exceptions,
+        setlocale,
+        hgettext
 
     -- Directories containing source files.
     hs-source-dirs:   app

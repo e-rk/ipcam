@@ -25,6 +25,8 @@ import Storage qualified as St
 import System.Environment
 import System.Environment.XDG.BaseDir qualified as Xdg
 import Types
+import System.Locale.SetLocale
+import Text.I18N.GetText
 
 data Runtime = Runtime
   { gui :: Gui,
@@ -261,6 +263,10 @@ initDefaultConfig = do
 
 main :: IO ()
 main = do
+  _ <- setLocale LC_ALL (Just "")
+  _ <- bindTextDomain __MESSAGE_CATALOG_DOMAIN__ (Just __MESSAGE_CATALOG_DIR__)
+  _ <- textDomain (Just __MESSAGE_CATALOG_DOMAIN__)
+  _ <- bindTextDomainCodepage __MESSAGE_CATALOG_DOMAIN__ (Just __MESSAGE_CATALOG_DIR__)
   cfg <-
     loadConfig >>= \x -> case x of
       Right c -> pure c
