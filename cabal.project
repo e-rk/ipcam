@@ -1,0 +1,6 @@
+packages: .
+
+source-repository-package
+    type: git
+    location: https://github.com/e-rk/hgettext.git
+    tag: 1506f4b9196afcf40f0d9858b47fbae856a4cdb8
