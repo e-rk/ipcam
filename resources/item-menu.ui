@@ -1,12 +1,12 @@
-<interface>
+<interface domain="io.github.e_rk.ipcam">
   <menu id='app-menu'>
     <section>
       <item>
-        <attribute name='label'>Edit camera</attribute>
+        <attribute name='label' translatable="yes">Camera settings</attribute>
         <attribute name='action'>app.edit-camera</attribute>
       </item>
       <item>
-        <attribute name='label'>Delete camera</attribute>
+        <attribute name='label' translatable="yes">Delete camera</attribute>
         <attribute name='action'>app.delete-camera</attribute>
       </item>
     </section>
