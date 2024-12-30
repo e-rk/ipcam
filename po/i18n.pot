@@ -1,0 +1,148 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-12-28 22:52+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: resources/add-action.ui:4
+msgid "Pan-tilt-zoom action"
+msgstr ""
+
+#: resources/error-dialog.ui:6
+msgid "Error"
+msgstr ""
+
+#: resources/error-dialog.ui:7
+msgid ""
+"Failed to parse application configuration. Do you want to create new empty "
+"configuration?"
+msgstr ""
+
+#: resources/error-dialog.ui:11
+msgid "Exit"
+msgstr ""
+
+#: resources/error-dialog.ui:12
+msgid "Create new"
+msgstr ""
+
+#: resources/gui.ui:22 resources/gui.ui:23
+msgid "Cameras"
+msgstr ""
+
+#: resources/item-menu.ui:9
+msgid "Delete camera"
+msgstr ""
+
+#: resources/item-menu.ui:5
+msgid "Camera settings"
+msgstr ""
+
+#: resources/add-action.ui:7
+msgid "Action URI"
+msgstr ""
+
+#: resources/add-action.ui:13
+msgid "Action start parameters"
+msgstr ""
+
+#: resources/add-action.ui:18
+msgid "Action stop parameters"
+msgstr ""
+
+#: resources/add-camera.ui:7
+msgid "Add camera"
+msgstr ""
+
+#: resources/add-camera.ui:17
+msgid "Cancel"
+msgstr ""
+
+#: resources/add-camera.ui:23
+msgid "Save"
+msgstr ""
+
+#: resources/add-camera.ui:34 resources/add-camera.ui:37
+msgid "Camera configuration"
+msgstr ""
+
+#: resources/add-camera.ui:38
+msgid "Required camera configuration options."
+msgstr ""
+
+#: resources/add-camera.ui:41
+msgid "Camera name"
+msgstr ""
+
+#: resources/add-camera.ui:47
+msgid "Video stream URI"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:4
+msgid "Pan-tilt-zoom"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:7
+msgid "HTTP configuration"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:18
+msgid "Request method"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:34
+msgid "Pan-tilt-zoom configuration"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:37
+msgid "Move left"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:42
+msgid "Move up"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:47
+msgid "Move right"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:52
+msgid "Move Down"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:57
+msgid "Zoom in"
+msgstr ""
+
+#: resources/camera-ptz-config.ui:62
+msgid "Zoom out"
+msgstr ""
+
+#: resources/gui.ui:6
+msgid "IP camera viewer"
+msgstr ""
+
+#: resources/gui.ui:49
+msgid "Video stream"
+msgstr ""
+
+#: resources/gui.ui:72
+msgid "Camera disconnected"
+msgstr ""
+
+#: resources/gui.ui:73
+msgid "Connect"
+msgstr ""
