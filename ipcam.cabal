@@ -49,9 +49,10 @@ build-type:         Custom
 extra-doc-files:    CHANGELOG.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
-extra-source-files: po/*.po
+extra-source-files: po/*.po, resources/*.css, resources/*.xml, resources/*.ui
 
-data-files: resources/resources.gresource
+x-gresource-xml-files: resources/resources.xml
+x-gresource-source-dir: resources
 
 x-gettext-po-files:     po/*.po
 x-gettext-domain-name:  io.github.e_rk.ipcam
@@ -59,6 +60,7 @@ x-gettext-domain-name:  io.github.e_rk.ipcam
 custom-setup
   setup-depends:
     hgettext,
+    cabal-gresource,
     base >= 4 && <5,
     Cabal >= 1.24 && < 4
 

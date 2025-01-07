@@ -4,3 +4,8 @@ source-repository-package
     type: git
     location: https://github.com/e-rk/hgettext.git
     tag: 1506f4b9196afcf40f0d9858b47fbae856a4cdb8
+
+source-repository-package
+    type: git
+    location: https://github.com/e-rk/cabal-gresource.git
+    tag: e6606644edec1c502c613f484a85be67d3947465

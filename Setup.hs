@@ -1,4 +1,5 @@
 import Distribution.Simple
+import Distribution.Simple.Gresource
 import Distribution.Simple.I18N.GetText
 
-main = defaultMainWithHooks $ installGetTextHooks simpleUserHooks
+main = defaultMainWithHooks $ cabalGresourceHooks $ installGetTextHooks simpleUserHooks
