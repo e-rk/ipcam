@@ -1,22 +1,27 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Main where
 
 import Config
 import Control.Concurrent
 import Control.Exception (catch)
 import Control.Exception.Safe (tryAny)
-import Control.Monad (forM_)
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
 import Data.ByteString.Lazy qualified as LBS
-import Data.GI.Base (AttrOp ((:=)))
 import Data.GI.Base qualified as Gptr
 import Data.GI.Base.Properties qualified as Gptr
+import Data.GI.Base.ShortPrelude
+import Data.GI.Base.Signals qualified as Sig
+import Data.List
 import Data.Map qualified as Map
 import Data.Maybe
-import Data.Text hiding (find, foldl', foldr, null)
-import Data.Text.Encoding
+import Data.Text qualified as T
+import Data.Text.Encoding qualified as T
 import Data.Text.IO.Utf8 qualified as T
 import Data.Tuple
+import Foreign hiding (void)
 import GHC.IO.Exception (IOException)
 import GI.Gst qualified as Gst
 import Gui
@@ -24,13 +29,17 @@ import Network.HTTP.Simple
 import Storage qualified as St
 import System.Environment
 import System.Environment.XDG.BaseDir qualified as Xdg
-import Types
 import System.Locale.SetLocale
 import Text.I18N.GetText
+import Types
 
 data Runtime = Runtime
   { gui :: Gui,
     playbin :: Gst.Pipeline,
+    uridecodebin :: Gst.Element,
+    audioconvert :: Gst.Element,
+    audiosink :: Gst.Element,
+    videoconvert :: Gst.Element,
     config :: AppConfig,
     storage :: St.Storage
   }
@@ -39,18 +48,19 @@ type MRuntime = MVar Runtime
 
 type App = StateT Runtime IO
 
-cameraURI :: Camera -> Text
+cameraURI :: Camera -> T.Text
 cameraURI = uriToText . videoURI
 
-gstCreateGtkWidget :: Gui -> Gst.Pipeline -> IO ()
-gstCreateGtkWidget gui pipeline = do
-  gtkglsink <- withGui gui guiGstCreateVideoSink
-  Gptr.setObjectPropertyObject pipeline "video-sink" gtkglsink
+gstCreateGtkWidget :: Gui -> Gst.Pipeline -> Gst.Element -> IO ()
+gstCreateGtkWidget gui pipeline videoconvert = do
+  Just gtkglsink <- withGui gui guiGstCreateVideoSink
+  void $ #add pipeline gtkglsink
+  void $ #link videoconvert gtkglsink
 
 getConfigPath :: IO String
 getConfigPath = Xdg.getUserConfigFile "ipcam" "camera.toml"
 
-loadConfig :: IO (Either Text Config)
+loadConfig :: IO (Either T.Text Config)
 loadConfig = do
   catch
     ( do
@@ -60,7 +70,7 @@ loadConfig = do
     )
     ( \e -> do
         let err = show (e :: IOException)
-        pure $ Left $ pack err
+        pure $ Left $ T.pack err
     )
 
 storeConfig :: Config -> IO ()
@@ -106,12 +116,11 @@ addCameraI camera = do
 startCameraStreaming :: Camera -> App ()
 startCameraStreaming camera = do
   runtime <- getRuntime
-  liftIO $ Gptr.setObjectPropertyString runtime.playbin "uri" (Just $ cameraURI camera)
-  Gst.set runtime.playbin [#latency := 300]
+  liftIO $ Gptr.setObjectPropertyString runtime.uridecodebin "uri" (Just $ cameraURI camera)
   _ <- Gst.elementSetState runtime.playbin Gst.StatePlaying
   pure ()
 
-selectCamera :: Text -> App ()
+selectCamera :: T.Text -> App ()
 selectCamera name = do
   runtime <- getRuntime
   camera <- St.getCamera runtime.storage name
@@ -134,7 +143,7 @@ runApp runtime = runner
   where
     runner action = modifyMVar runtime (\x -> swap <$> runStateT action x)
 
-selectCameraHandler :: MRuntime -> Text -> IO ()
+selectCameraHandler :: MRuntime -> T.Text -> IO ()
 selectCameraHandler runtime name = do
   _ <- runApp runtime (selectCamera name)
   pure ()
@@ -187,10 +196,10 @@ appPtzAction ptzCommand start (Just (PtzData requestHeaders requestMethod ptzDat
   case request of
     Just requestData -> do
       let requestBody = if start then requestData.requestStartBody else requestData.requestStopBody
-      reqInit <- parseRequest (unpack $ uriToText requestData.requestURI)
+      reqInit <- parseRequest (T.unpack $ uriToText requestData.requestURI)
       let req =
-            setRequestMethod (encodeUtf8 requestMethod) $
-              setRequestBodyLBS (LBS.fromStrict $ encodeUtf8 requestBody) reqInit
+            setRequestMethod (T.encodeUtf8 requestMethod) $
+              setRequestBodyLBS (LBS.fromStrict $ T.encodeUtf8 requestBody) reqInit
       let req2 = foldr (\a b -> addRequestHeader (fst a) (snd a) b) req requestHeaders
       _ <- liftIO $ tryAny (httpNoBody req2 >> pure ())
       pure ()
@@ -221,7 +230,9 @@ streamHandler message = do
       Gst.MessageTypeStateChanged -> do
         (_, newState, _) <- #parseStateChanged message
         case newState of
-          Gst.StatePlaying -> liftIO $ withGui runtime.gui (guiShowBanner False)
+          Gst.StatePlaying -> do
+            liftIO $ withGui runtime.gui (guiShowBanner False)
+            Gst.debugBinToDotFile runtime.playbin [Gst.DebugGraphDetailsAll] "Pipeline"
           Gst.StateReady -> #setState runtime.playbin Gst.StatePlaying >> pure ()
           _ -> pure ()
         pure ()
@@ -259,12 +270,71 @@ initDefaultConfig = do
   storeConfig config
   pure config
 
+padAddedHandler :: Gst.Element -> Gst.Element -> Gst.Pad -> IO ()
+padAddedHandler audioconvert videoconvert pad = do
+  Just videopad <- #getStaticPad videoconvert "sink"
+  Just audiopad <- #getStaticPad audioconvert "sink"
+  Just caps <- Gst.get pad #caps
+  struct <- Gst.capsGetStructure caps 0
+  padType <- #getName struct
+  let actions = [("video/x-raw", void $ #link pad videopad), ("audio/x-raw", void $ #link pad audiopad)]
+  let p = find (flip T.isPrefixOf padType . fst) actions
+  case p of
+    Just p' -> snd p'
+    Nothing -> pure ()
+
+type SourceSetupCallback = Gst.Element -> IO ()
+
+data SourceSetupSignalInfo
+
+instance Sig.SignalInfo SourceSetupSignalInfo where
+  type HaskellCallbackType SourceSetupSignalInfo = SourceSetupCallback
+  connectSignal = connectGObjectNotify
+
+type SourceSetupCallbackC = Ptr () -> Ptr Gst.Element -> Ptr () -> IO ()
+
+foreign import ccall "wrapper"
+  mkSourceSetupCallback :: SourceSetupCallbackC -> IO (FunPtr SourceSetupCallbackC)
+
+gobjectNotifyCallbackWrapper ::
+  (Gptr.GObject o) =>
+  (o -> SourceSetupCallback) ->
+  Ptr () ->
+  Ptr Gst.Element ->
+  Ptr () ->
+  IO ()
+gobjectNotifyCallbackWrapper cb selfPtr pspec _ = do
+  pspec' <- newManagedPtr_ pspec
+  withTransient (castPtr selfPtr) $ \self -> cb self (Gst.Element pspec')
+
+connectGObjectNotify ::
+  (Gptr.GObject o) =>
+  o ->
+  (o -> SourceSetupCallback) ->
+  Sig.SignalConnectMode ->
+  Maybe T.Text ->
+  IO Sig.SignalHandlerId
+connectGObjectNotify obj cb mode detail = do
+  cb' <- mkSourceSetupCallback (gobjectNotifyCallbackWrapper cb)
+  Sig.connectSignalFunPtr obj "source-setup" cb' mode detail
+
+test :: Gst.Element -> IO ()
+test source = do
+  liftIO $ Gptr.setObjectPropertyInt source "latency" 300
+  liftIO $ Gptr.setObjectPropertyBool source "onvif-mode" True
+  liftIO $ Gptr.setObjectPropertyBool source "is-live" True
+  liftIO $ Gptr.setObjectPropertyBool source "onvif-rate-control" False
+  liftIO $ Gptr.setObjectPropertyInt source "backchannel" 1
+
+proxy :: Gst.SignalProxy Gst.Element SourceSetupSignalInfo
+proxy = Sig.SignalProxy
+
 main :: IO ()
 main = do
   _ <- setLocale LC_ALL (Just "")
   _ <- bindTextDomain __MESSAGE_CATALOG_DOMAIN__ (Just __MESSAGE_CATALOG_DIR__)
   _ <- textDomain (Just __MESSAGE_CATALOG_DOMAIN__)
-  _ <- bindTextDomainCodepage __MESSAGE_CATALOG_DOMAIN__ (Just __MESSAGE_CATALOG_DIR__)
+  _ <- bindTextDomainCodeset __MESSAGE_CATALOG_DOMAIN__ (Just "UTF8")
   cfg <-
     loadConfig >>= \x -> case x of
       Right c -> pure c
@@ -272,16 +342,30 @@ main = do
   storage <- St.newStorage cfg.cameras
   (gui, app) <- guiInit storage
   args <- getArgs
-  _ <- Gst.init (Just $ fmap pack args)
-  pipeline <- Gst.elementFactoryMake "playbin3" (Just "pipeline") >>= Gptr.unsafeCastTo Gst.Pipeline . fromJust
-  liftIO $ Gptr.setObjectPropertyBool pipeline "instant-uri" True
+  _ <- Gst.init (Just $ fmap T.pack args)
+  pipeline <- Gst.new Gst.Pipeline [#name := "Pipeline"]
+  uridecodebin <- Gst.elementFactoryMake "uridecodebin" (Just "Source") >>= Gptr.unsafeCastTo Gst.Element . fromJust
+  videoconvert <- Gst.elementFactoryMake "videoconvert" (Just "Videoconvert") >>= Gptr.unsafeCastTo Gst.Element . fromJust
+  audioconvert <- Gst.elementFactoryMake "audioconvert" (Just "Audioconvert") >>= Gptr.unsafeCastTo Gst.Element . fromJust
+  audiosink <- Gst.elementFactoryMake "autoaudiosink" (Just "Audiosink") >>= Gptr.unsafeCastTo Gst.Element . fromJust
+  void $ #add pipeline uridecodebin
+  void $ #add pipeline videoconvert
+  void $ #add pipeline audioconvert
+  void $ #add pipeline audiosink
+  void $ #link audioconvert audiosink
+  void $ Gst.on uridecodebin proxy test
+  void $ Gst.on uridecodebin #padAdded (padAddedHandler audioconvert videoconvert)
 
-  gstCreateGtkWidget gui pipeline
+  gstCreateGtkWidget gui pipeline videoconvert
 
   newMVar
     Runtime
       { gui = gui,
         playbin = pipeline,
+        uridecodebin = uridecodebin,
+        videoconvert = videoconvert,
+        audioconvert = audioconvert,
+        audiosink = audiosink,
         config = cfg.appConfig,
         storage = storage
       }
